@@ -15,7 +15,7 @@ import (
 type Writer struct {
 	W    *bufio.Writer
 	dot  *dotWriter
-	bdat *bdatWriter
+	raw *rawWriter
 }
 
 // NewWriter returns a new Writer writing to w.
@@ -47,9 +47,9 @@ func (w *Writer) DotWriter() io.WriteCloser {
 	return w.dot
 }
 
-func (w *Writer) BdatWriter() io.WriteCloser {
-	w.bdat = &bdatWriter{w: w}
-	return w.bdat
+func (w *Writer) RawWriter() io.WriteCloser {
+	w.raw = &rawWriter{w: w}
+	return w.raw
 }
 
 func (w *Writer) closeDot() {
@@ -63,7 +63,7 @@ type dotWriter struct {
 	state int
 }
 
-type bdatWriter struct {
+type rawWriter struct {
 	w *Writer
 }
 
@@ -128,25 +128,17 @@ func (d *dotWriter) Close() error {
 	return bw.Flush()
 }
 
-func (r *bdatWriter) Write(b []byte) (n int, err error) {
+func (r *rawWriter) Write(b []byte) (n int, err error) {
 	bw := r.w.W
-	bLen := len(b)
-	if bLen > 0 {
-		bdatHeader := fmt.Sprintf("BDAT %d \r\n", bLen)
-		bw.Write([]byte(bdatHeader))
-		n, err = bw.Write(b)
-		if err == nil {
-			err = bw.Flush()
-		}
+	n, err = bw.Write(b)
+	if err == nil {
+		err = bw.Flush()
 	}
-	return
+	return n, err
 }
 
-func (r *bdatWriter) Close() error {
+func (r *rawWriter) Close() error {
 	bw := r.w.W
-	_, err := bw.Write([]byte("BDAT 0 LAST\r\n"))
-	if err != nil {
-		return err
-	}
 	return bw.Flush()
 }
+
