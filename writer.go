@@ -15,6 +15,7 @@ import (
 type Writer struct {
 	W   *bufio.Writer
 	dot *dotWriter
+	raw *rawWriter
 }
 
 // NewWriter returns a new Writer writing to w.
@@ -46,6 +47,11 @@ func (w *Writer) DotWriter() io.WriteCloser {
 	return w.dot
 }
 
+func (w *Writer) RawWriter() io.WriteCloser {
+	w.raw = &rawWriter{w: w}
+	return w.raw
+}
+
 func (w *Writer) closeDot() {
 	if w.dot != nil {
 		w.dot.Close() // sets w.dot = nil
@@ -55,6 +61,10 @@ func (w *Writer) closeDot() {
 type dotWriter struct {
 	w     *Writer
 	state int
+}
+
+type rawWriter struct {
+	w *Writer
 }
 
 const (
@@ -115,5 +125,19 @@ func (d *dotWriter) Close() error {
 	case wstateBeginLine:
 		bw.Write(dotcrnl)
 	}
+	return bw.Flush()
+}
+
+func (r *rawWriter) Write(p []byte) (n int, err error) {
+	bw := r.w.W
+	n, err = bw.Write(p)
+	if err == nil {
+		err = bw.Flush()
+	}
+	return n, err
+}
+
+func (r *rawWriter) Close() error {
+	bw := r.w.W
 	return bw.Flush()
 }
