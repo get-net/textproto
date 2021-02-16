@@ -130,11 +130,11 @@ func (d *dotWriter) Close() error {
 
 func (r *rawWriter) Write(p []byte) (n int, err error) {
 	bw := r.w.W
-	n, err = bw.Write(p)
-	if err == nil {
-		err = bw.Flush()
-	}
-	return n, err
+	return bw.Write(p)
+	////if err == nil {
+	////	err = bw.Flush()
+	////}
+	//return n, err
 }
 
 func (r *rawWriter) Close() error {
