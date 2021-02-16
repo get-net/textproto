@@ -1,1 +1,1 @@
-module "textproto"
+module github.com/get-net/textproto
