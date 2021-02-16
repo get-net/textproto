@@ -130,11 +130,15 @@ func (d *dotWriter) Close() error {
 
 func (r *rawWriter) Write(p []byte) (n int, err error) {
 	bw := r.w.W
-	return bw.Write(p)
-	////if err == nil {
-	////	err = bw.Flush()
-	////}
-	//return n, err
+
+	for n < len(p) {
+		c := p[n]
+		if err = bw.WriteByte(c); err != nil {
+			break
+		}
+		n++
+	}
+	return
 }
 
 func (r *rawWriter) Close() error {
