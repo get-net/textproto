@@ -13,9 +13,9 @@ import (
 // A Writer implements convenience methods for writing
 // requests or responses to a text protocol network connection.
 type Writer struct {
-	W   *bufio.Writer
-	dot *dotWriter
-	raw *rawWriter
+	W    *bufio.Writer
+	dot  *dotWriter
+	bdat *bdatWriter
 }
 
 // NewWriter returns a new Writer writing to w.
@@ -47,9 +47,9 @@ func (w *Writer) DotWriter() io.WriteCloser {
 	return w.dot
 }
 
-func (w *Writer) RawWriter() io.WriteCloser {
-	w.raw = &rawWriter{w: w}
-	return w.raw
+func (w *Writer) BdatWriter() io.WriteCloser {
+	w.bdat = &bdatWriter{w: w}
+	return w.bdat
 }
 
 func (w *Writer) closeDot() {
@@ -63,7 +63,7 @@ type dotWriter struct {
 	state int
 }
 
-type rawWriter struct {
+type bdatWriter struct {
 	w *Writer
 }
 
@@ -128,16 +128,25 @@ func (d *dotWriter) Close() error {
 	return bw.Flush()
 }
 
-func (r *rawWriter) Write(p []byte) (n int, err error) {
+func (r *bdatWriter) Write(b []byte) (n int, err error) {
 	bw := r.w.W
-	n, err = bw.Write(p)
-	if err == nil {
-		err = bw.Flush()
+	bLen := len(b)
+	if bLen > 0 {
+		bdatHeader := fmt.Sprintf("BDAT %d \r\n", bLen)
+		bw.Write([]byte(bdatHeader))
+		n, err = bw.Write(b)
+		if err == nil {
+			err = bw.Flush()
+		}
 	}
-	return n, err
+	return
 }
 
-func (r *rawWriter) Close() error {
+func (r *bdatWriter) Close() error {
 	bw := r.w.W
+	_, err := bw.Write([]byte("BDAT 0 LAST\r\n"))
+	if err != nil {
+		return err
+	}
 	return bw.Flush()
 }
